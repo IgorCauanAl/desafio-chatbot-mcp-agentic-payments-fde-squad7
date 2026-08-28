@@ -1,0 +1,19 @@
+[project]
+name = "desafio-chatbot-mcp-agentic-payments-fde-squad7"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "IgorCauanAl", email = "igorcauawo@gmail.com" }
+]
+requires-python = ">=3.13"
+dependencies = [
+    "mcp[cli]>=2.1.1",
+]
+
+[project.scripts]
+desafio-chatbot-mcp-agentic-payments-fde-squad7 = "desafio_chatbot_mcp_agentic_payments_fde_squad7:main"
+
+[build-system]
+requires = ["uv_build>=0.12.7,<0.13.0"]
+build-backend = "uv_build"
