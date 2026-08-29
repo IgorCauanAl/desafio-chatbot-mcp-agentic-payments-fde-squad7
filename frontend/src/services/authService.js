@@ -1,46 +1,22 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
-// Para alternar entre o uso de mock para API real, alterar esta variável para false
-const USE_MOCK = true;
-
-export async function loginRequest(username, password) {
-  if (USE_MOCK) {
-    // Simula um delay de rede
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-    // Simula uma resposta de login bem-sucedida
-    return { token: 'mock-token', user: { id: 1, username } };
-  }
-
-  const response = await fetch(`${API_URL}/api/auth/login`, {
+export async function loginRequest(email, password) {
+  const response = await fetch(`${API_URL}/api/v1/auth/tokens`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ email, password }),
   });
+
+  const body = await response.json();
 
   if (!response.ok) {
-    if (response.status === 401) {
-      throw new Error('Usuário ou senha inválidos.');
-    }
-    throw new Error('Erro ao conectar com o servidor.');
+    throw new Error(body.error?.message || 'Erro ao entrar.');
   }
 
-  return response.json(); // esperado: { token, user }
-
-  // Simula latência de rede e retorna sempre sucesso, exceto campos vazios
-function mockLoginRequest(username, password) {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      if (!username || !password) {
-        reject(new Error('Usuário ou senha inválidos.'));
-        return;
-      }
-
-      resolve({
-        token: 'mock-token-123',
-        user: { id: 'u1', username, limite: 500 },
-      });
-    }, 500);
-  });
+  return body.data; // { access_token, token_type, expires_in }
 }
 
+export function authHeader() {
+  const token = sessionStorage.getItem('auth_token');
+  return token ? { Authorization: `Bearer ${token}` } : {};
 }
