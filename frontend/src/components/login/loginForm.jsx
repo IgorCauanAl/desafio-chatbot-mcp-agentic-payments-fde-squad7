@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import './LoginForm.css';
 import { useNavigate } from 'react-router-dom';
+import Alert from '../Alert';
 
 export default function LoginForm() {
   const { login, loading, error } = useAuth();
@@ -48,7 +49,7 @@ export default function LoginForm() {
         />
       </div>
 
-      {error && <p className="ticket-error" role="alert">{error}</p>}
+     {error && <Alert type="error" message={error} />}
 
       <button className="ticket-submit" type="submit" disabled={loading}>
         {loading ? 'verificando…' : 'entrar no chat'}

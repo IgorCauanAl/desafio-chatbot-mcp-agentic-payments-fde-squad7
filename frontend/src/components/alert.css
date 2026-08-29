@@ -1,0 +1,28 @@
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.alert__icon {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.alert--error {
+  background: rgba(161, 61, 61, 0.1);
+  color: #a13d3d;
+  border: 1px solid rgba(161, 61, 61, 0.25);
+}
+
+.alert--success {
+  background: rgba(58, 143, 99, 0.12);
+  color: var(--phosphor-dim);
+  border: 1px solid rgba(58, 143, 99, 0.3);
+}
