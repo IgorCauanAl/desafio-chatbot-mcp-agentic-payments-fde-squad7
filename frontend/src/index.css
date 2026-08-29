@@ -11,6 +11,7 @@
   --font-display: 'Space Grotesk', sans-serif;
   --font-mono: 'IBM Plex Mono', monospace;
   --font-body: 'Inter', sans-serif;
+  
 }
 
 * { box-sizing: border-box; }

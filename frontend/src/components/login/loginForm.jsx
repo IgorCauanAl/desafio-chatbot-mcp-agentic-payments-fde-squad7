@@ -1,16 +1,20 @@
 import { useState } from 'react';
 import { useAuth } from '../../hooks/useAuth';
 import './LoginForm.css';
+import { useNavigate } from 'react-router-dom';
 
-export default function LoginForm({ onSuccess }) {
+export default function LoginForm() {
   const { login, loading, error } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
     const ok = await login(username, password);
-    if (ok && onSuccess) onSuccess();
+    if (ok) {
+      navigate('/chat');
+    }
   }
 
   return (
