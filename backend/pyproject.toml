@@ -1,0 +1,45 @@
+[project]
+name = "agentic-payments-backend"
+version = "0.1.0"
+description = "API REST segura para o desafio de pagamentos agênticos"
+requires-python = ">=3.13"
+dependencies = [
+  "aiosqlite>=0.21.0",
+  "alembic>=1.16.0",
+  "email-validator>=2.2.0",
+  "fastapi>=0.116.0",
+  "pwdlib[argon2]>=0.2.1",
+  "pydantic-settings>=2.10.0",
+  "pyjwt>=2.10.1",
+  "sqlalchemy[asyncio]>=2.0.40",
+  "structlog>=25.4.0",
+  "uvicorn[standard]>=0.35.0",
+]
+
+[dependency-groups]
+dev = [
+  "httpx>=0.28.1",
+  "mypy>=1.17.0",
+  "pytest>=8.4.0",
+  "pytest-asyncio>=1.1.0",
+  "ruff>=0.12.0",
+]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["."]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py313"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "ASYNC"]
+ignore = ["B008"] # FastAPI dependency injection intentionally uses callable defaults.
+
+[tool.mypy]
+python_version = "3.13"
+strict = true
+plugins = ["pydantic.mypy", "sqlalchemy.ext.mypy.plugin"]
+disable_error_code = ["no-untyped-def", "no-any-return", "type-arg"]
