@@ -27,14 +27,34 @@ from app.schemas import (
     ProductResponse,
     PurchaseRequest,
     PurchaseResponse,
+    RefreshRequest,
     Success,
     TokenResponse,
 )
 from app.security import Principal, get_principal, validate_token
-from app.services import authenticate, execute_purchase, get_catalog, register_intention
+from app.services import (
+    authenticate,
+    execute_purchase,
+    get_catalog,
+    refresh_access_token,
+    register_intention,
+)
 
 router = APIRouter(prefix="/api/v1")
 orchestrator = ChatOrchestrator(get_settings())
+
+
+def set_refresh_cookie(response: Response, refresh_token: str) -> None:
+    settings = get_settings()
+    response.set_cookie(
+        key="refresh_token",
+        value=refresh_token,
+        httponly=settings.refresh_cookie_http_only,
+        secure=settings.refresh_cookie_secure,
+        samesite=settings.refresh_cookie_samesite,
+        max_age=settings.refresh_token_minutes * 60,
+        path="/",
+    )
 
 
 @router.post(
@@ -45,9 +65,53 @@ orchestrator = ChatOrchestrator(get_settings())
     description="Emite um JWT para credenciais válidas.",
     responses={401: {"description": "Credenciais inválidas"}},
 )
-async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
-    token, expires_in = await authenticate(db, data.email, data.password)
-    return {"data": {"access_token": token, "token_type": "bearer", "expires_in": expires_in}}
+async def login(data: LoginRequest, response: Response, db: AsyncSession = Depends(get_db)):
+    access_token, refresh_token, expires_in = await authenticate(db, data.email, data.password)
+    principal = validate_token(access_token)
+    if hasattr(orchestrator, "register_session_tokens"):
+        orchestrator.register_session_tokens(principal.session_id, access_token, refresh_token)
+    set_refresh_cookie(response, refresh_token)
+    return {
+        "data": {
+            "access_token": access_token,
+            "refresh_token": refresh_token,
+            "token_type": "bearer",
+            "expires_in": expires_in,
+        }
+    }
+
+
+@router.post(
+    "/auth/refresh",
+    response_model=Success[TokenResponse],
+    tags=["auth"],
+    summary="Renovar sessão",
+    description="Valida um refresh token e emite um novo access token.",
+    responses={401: {"description": "Refresh token inválido ou expirado"}},
+)
+async def refresh(
+    data: RefreshRequest,
+    request: Request,
+    response: Response,
+    db: AsyncSession = Depends(get_db),
+):
+    refresh_token = data.refresh_token or request.cookies.get("refresh_token")
+    if not refresh_token:
+        raise ApiError(401, "REFRESH_TOKEN_INVALIDO", "Refresh token ausente")
+
+    access_token, new_refresh_token, expires_in = await refresh_access_token(db, refresh_token)
+    principal = validate_token(access_token)
+    if hasattr(orchestrator, "register_session_tokens"):
+        orchestrator.register_session_tokens(principal.session_id, access_token, new_refresh_token)
+    set_refresh_cookie(response, new_refresh_token)
+    return {
+        "data": {
+            "access_token": access_token,
+            "refresh_token": new_refresh_token,
+            "token_type": "bearer",
+            "expires_in": expires_in,
+        }
+    }
 
 
 @router.websocket("/chat/ws")

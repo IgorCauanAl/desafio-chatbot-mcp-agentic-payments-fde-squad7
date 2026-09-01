@@ -5,6 +5,10 @@
   max-width: 640px;
   margin: 0 auto;
   background: var(--ink);
+  border: 1px solid var(--phosphor-dim);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(110, 255, 176, 0.15);
 }
 
 .chat-header {
@@ -29,4 +33,14 @@
   font-weight: 600;
   color: var(--ink);
   margin: 0;
+}
+
+.chat-page__error {
+  padding: 10px 16px;
+  background: rgba(255, 120, 120, 0.08);
+  border-left: 3px solid #ff8d8d;
+  color: #ffd3d3;
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }

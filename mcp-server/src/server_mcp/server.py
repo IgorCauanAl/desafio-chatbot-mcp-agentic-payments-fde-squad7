@@ -31,7 +31,7 @@ async def registrar_intencao(produto_id: str, quantidade: int) -> str:
 
 
 @mcp.tool()
-async def realizar_compra(intencao_id: str, metodo_pagamento: str) -> str:
+async def realizar_compra(intencao_id: str, metodo_pagamento: str, confirmado: bool = False) -> str:
 
     if metodo_pagamento not in ["cartao", "pix"]:
         resultado = {
@@ -39,9 +39,17 @@ async def realizar_compra(intencao_id: str, metodo_pagamento: str) -> str:
             "erro": "METODO_INVALIDO",
             "mensagem": f"O método '{metodo_pagamento}' não é aceito. Escolha 'cartao' ou 'pix'."
         }
-    else:
-        resultado = await backend_client.realizar_compra(intencao_id, metodo_pagamento)
+        return json.dumps(resultado, ensure_ascii=False)
 
+    if not confirmado:
+        resultado = {
+            "status": "pendente",
+            "erro": "CONFIRMACAO_PENDENTE",
+            "mensagem": "Compra ainda não confirmada. Peça ao cliente que confirme explicitamente a autorização do pagamento antes de prosseguir."
+        }
+        return json.dumps(resultado, ensure_ascii=False)
+
+    resultado = await backend_client.realizar_compra(intencao_id, metodo_pagamento)
     return json.dumps(resultado, ensure_ascii=False)
 
 

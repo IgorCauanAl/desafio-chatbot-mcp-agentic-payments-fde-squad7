@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from math import ceil
 from uuid import uuid4
 
+import jwt
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -16,14 +17,42 @@ from app.repositories import (
     list_products,
 )
 from app.schemas import IntentionRequest, PurchaseRequest
-from app.security import Principal, create_access_token, verify_password
+from app.security import (
+    Principal,
+    create_access_token,
+    create_refresh_token,
+    validate_refresh_token,
+    verify_password,
+)
 
 
-async def authenticate(db: AsyncSession, email: str, password: str) -> tuple[str, int]:
+async def authenticate(db: AsyncSession, email: str, password: str) -> tuple[str, str, int]:
     user = await find_user_by_email(db, email)
     if user is None or not verify_password(password, user.password_hash):
-        raise ApiError(401, "CREDENCIAIS_INVALIDAS", "E-mail ou senha inválidos")
-    return create_access_token(user.id)
+        raise ApiError(401, "CREDENCIAIS_INVALIDAS", "Senha ou email incorreto")
+    session_id = str(uuid4())
+    access_token, expires_in = create_access_token(user.id, session_id)
+    refresh_token = create_refresh_token(user.id, session_id)
+    return access_token, refresh_token, expires_in
+
+
+async def refresh_access_token(db: AsyncSession, refresh_token: str) -> tuple[str, str, int]:
+    user_id = validate_refresh_token(refresh_token)
+    user = await find_user(db, user_id)
+    if user is None:
+        raise ApiError(401, "REFRESH_TOKEN_INVALIDO", "Refresh token inválido ou expirado")
+
+    settings = get_settings()
+    payload = jwt.decode(
+        refresh_token,
+        settings.refresh_secret,
+        algorithms=[settings.jwt_algorithm],
+        options={"require": ["sub", "sid", "exp"]},
+    )
+    session_id = str(payload.get("sid") or uuid4())
+    access_token, expires_in = create_access_token(user.id, session_id)
+    new_refresh_token = create_refresh_token(user.id, session_id)
+    return access_token, new_refresh_token, expires_in
 
 
 async def get_catalog(db: AsyncSession, category: str | None, page: int, limit: int):

@@ -17,8 +17,13 @@ class LoginRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: str | None = None
     token_type: Literal["bearer"] = "bearer"
     expires_in: int
+
+
+class RefreshRequest(BaseModel):
+    refresh_token: str | None = None
 
 
 class ChatMessage(BaseModel):

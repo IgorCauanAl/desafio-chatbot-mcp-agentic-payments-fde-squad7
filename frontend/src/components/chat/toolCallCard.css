@@ -1,34 +1,96 @@
 .tool-card {
   margin-top: 10px;
-  background: rgba(16, 19, 15, 0.06);
-  border: 1px solid rgba(16, 19, 15, 0.15);
-  border-radius: 8px;
-  padding: 10px 12px;
-  font-family: var(--font-mono);
+  background: rgba(20, 24, 17, 0.04);
+  border: 1px solid rgba(17, 24, 20, 0.12);
+  border-radius: 14px;
+  padding: 12px 14px;
   font-size: 12px;
+  box-shadow: 0 8px 18px rgba(17, 20, 14, 0.04);
 }
 
 .tool-card__name {
-  font-weight: 600;
-  color: var(--phosphor-dim);
-  text-transform: lowercase;
+  display: inline-block;
+  margin-bottom: 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #2e5b44;
 }
 
 .tool-card__body {
-  margin-top: 6px;
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: 6px;
 }
 
 .tool-card__row {
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  color: #6b6455;
+  align-items: center;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(17, 24, 20, 0.07);
+  color: #5a5a51;
 }
 
-.tool-card__row span:last-child {
+.tool-card__row:last-child {
+  border-bottom: none;
+}
+
+.tool-card__row strong {
   color: var(--ink);
-  font-weight: 500;
+  font-weight: 700;
+  text-align: right;
+}
+
+.tool-card--catalog .tool-card__list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.tool-card__product {
+  padding: 12px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(34, 93, 67, 0.12), rgba(34, 93, 67, 0.03));
+  border: 1px solid rgba(34, 93, 67, 0.14);
+}
+
+.tool-card__product-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #2e5b44;
+  background: rgba(46, 91, 68, 0.08);
+  border-radius: 999px;
+  padding: 4px 7px;
+  margin-bottom: 8px;
+}
+
+.tool-card__product-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink);
+  margin-bottom: 10px;
+}
+
+.tool-card__product-meta {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  color: #5a5a51;
+  font-size: 11px;
+}
+
+.tool-card__product-meta strong {
+  color: var(--ink);
+  font-size: 12px;
+}
+
+.tool-card__empty {
+  color: #5a5a51;
+  font-style: italic;
 }

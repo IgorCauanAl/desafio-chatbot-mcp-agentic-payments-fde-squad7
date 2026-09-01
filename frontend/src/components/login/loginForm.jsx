@@ -11,9 +11,16 @@ export default function LoginForm() {
   const [password, setPassword] = useState('');
 
   async function handleSubmit(e) {
-    e.preventDefault();
+    e?.preventDefault?.();
     const ok = await login(email, password);
     if (ok) navigate('/chat');
+  }
+
+  function handleKeyDown(e) {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      handleSubmit(e);
+    }
   }
 
   return (
@@ -31,6 +38,7 @@ export default function LoginForm() {
           autoComplete="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          onKeyDown={handleKeyDown}
           required
         />
       </div>
@@ -43,6 +51,7 @@ export default function LoginForm() {
           autoComplete="current-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
+          onKeyDown={handleKeyDown}
           required
         />
       </div>

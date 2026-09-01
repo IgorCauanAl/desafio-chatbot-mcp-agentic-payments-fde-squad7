@@ -85,12 +85,15 @@ async def lifespan(_app: FastAPI):
 
 
 app = FastAPI(title="Agentic Payments Backend", version="0.1.0", lifespan=lifespan)
+settings = get_settings()
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=get_settings().cors_origins,
+    allow_origins=settings.cors_origins,
+    allow_origin_regex=r"https?://(localhost|127\.0\.0\.1):\d+",
     allow_credentials=True,
-    allow_methods=["GET", "POST"],
+    allow_methods=["GET", "POST", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Idempotency-Key", "X-Request-ID"],
+    expose_headers=["X-Request-ID"],
 )
 
 

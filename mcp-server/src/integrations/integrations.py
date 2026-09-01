@@ -35,7 +35,14 @@ class BackendClient:
         except httpx.HTTPError as e:
             return self._error_response(e)
 
-    async def realizar_compra(self, intencao_id: str, metodo_pagamento: str) -> dict[str, Any]:
+    async def realizar_compra(self, intencao_id: str, metodo_pagamento: str, confirmado: bool = False) -> dict[str, Any]:
+        if not confirmado:
+            return {
+                "status": "pendente",
+                "erro": "CONFIRMACAO_PENDENTE",
+                "mensagem": "Compra ainda não confirmada. Solicite a confirmação do cliente antes de executar o pagamento.",
+            }
+
         payload = {"intention_id": intencao_id, "payment_method": metodo_pagamento}
         try:
             response = await self.client.post(
