@@ -175,21 +175,6 @@ Exemplo de evento de auditoria:
 }
 ```
 
-## Testes e qualidade
-
-```bash
-cd backend
-uv run ruff format --check .
-uv run ruff check .
-uv run mypy app
-uv run pytest -q
-```
-
-```bash
-cd frontend
-npm run build
-```
-
 ## Checklist da entrega
 
 - [x] Frontend e backend locais.
