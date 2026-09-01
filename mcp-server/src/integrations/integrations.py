@@ -1,69 +1,66 @@
-import os
-import httpx
 import json
-from typing import Optional, Dict, Any
+import os
+from typing import Any
+from uuid import uuid4
+
+import httpx
 
 class BackendClient:
     def __init__(self):
-        #Esperando o back-end definir as rotas
-        self.base_url = os.getenv()
+        self.base_url = os.getenv("BACKEND_URL", "http://localhost:8000")
+        token = os.getenv("BACKEND_TOKEN")
+        headers = {"Authorization": f"Bearer {token}"} if token else {}
+        self.client = httpx.AsyncClient(
+            base_url=self.base_url,
+            headers=headers,
+            timeout=10.0,
+        )
 
-        self.client = httpx.AsyncClient(base_url=self.base_url, timeout=10.0)
-
-    async def listar_catalogo(self, categoria: Optional[str] = None) -> Dict[str, Any]:
-
-        if categoria :
-            params = {"categoria": categoria}
-        else:
-            params = {}
+    async def listar_catalogo(self, categoria: str | None = None) -> dict[str, Any]:
+        params = {"category": categoria} if categoria else {}
 
         try:
-            # Esperando o back-end definir suas rotas
-            response = await self.client.get("/catalogo", params=params)
+            response = await self.client.get("/api/v1/products", params=params)
             response.raise_for_status()
             return response.json()
-
         except httpx.HTTPError as e:
-            return {"erro": "FALHA_COMUNICACAO_BACKEND", "mensagem": str(e)}
+            return self._error_response(e)
 
-    async def registrar_intencao(self, produto_id: str, quantidade: int) -> Dict[str, Any]:
-
-        payload = {
-            "produto_id": produto_id,
-            "quantidade": quantidade
-        }
+    async def registrar_intencao(self, produto_id: str, quantidade: int) -> dict[str, Any]:
+        payload = {"product_id": produto_id, "quantity": quantidade}
         try:
-            # Esperando o back-end definir suas rotas
-            response = await self.client.post("/intencao", json=payload)
-
+            response = await self.client.post("/api/v1/purchase-intentions", json=payload)
+            response.raise_for_status()
             return response.json()
         except httpx.HTTPError as e:
+            return self._error_response(e)
 
-            # Se o back-end retornar 4xx ou 5xx, lemos o JSON de erro do backend
-            if hasattr(e, 'response') and e.response is not None:
-                return e.response.json()
-            return {"erro": "FALHA_COMUNICACAO_BACKEND", "mensagem": str(e)}
-
-    async def realizar_compra(self, intencao_id: str, metodo_pagamento: str) -> Dict[str, Any]:
-
-        payload = {
-            "intencao_id": intencao_id,
-            "metodo_pagamento": metodo_pagamento
-        }
+    async def realizar_compra(self, intencao_id: str, metodo_pagamento: str) -> dict[str, Any]:
+        payload = {"intention_id": intencao_id, "payment_method": metodo_pagamento}
         try:
-            # Esperando o back-end definir suas rotas
-            response = await self.client.post("/compra", json=payload)
-
+            response = await self.client.post(
+                "/api/v1/purchases",
+                json=payload,
+                headers={"Idempotency-Key": str(uuid4())},
+            )
+            response.raise_for_status()
             return response.json()
         except httpx.HTTPError as e:
-            if hasattr(e, 'response') and e.response is not None:
-                return e.response.json()
-            return {
-                "status": "recusado",
-                "erro": "ERRO_INTERNO",
-                "mensagem": "Não foi possível contatar o sistema de pagamentos."
-            }
+            return self._error_response(e)
 
     async def fechar(self):
-        # Fecha a sessão http.
         await self.client.aclose()
+
+    @staticmethod
+    def _error_response(error: httpx.HTTPError) -> dict[str, Any]:
+        if isinstance(error, httpx.HTTPStatusError):
+            try:
+                return error.response.json()
+            except json.JSONDecodeError:
+                pass
+        return {
+            "error": {
+                "code": "FALHA_COMUNICACAO_BACKEND",
+                "message": "Não foi possível contatar o sistema de pagamentos.",
+            }
+        }

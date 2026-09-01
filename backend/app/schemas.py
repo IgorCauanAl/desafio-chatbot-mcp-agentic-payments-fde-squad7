@@ -21,6 +21,14 @@ class TokenResponse(BaseModel):
     expires_in: int
 
 
+class ChatRequest(BaseModel):
+    message: str = Field(min_length=1, max_length=4_000)
+
+
+class ChatResponse(BaseModel):
+    reply: str
+
+
 class ProductResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str

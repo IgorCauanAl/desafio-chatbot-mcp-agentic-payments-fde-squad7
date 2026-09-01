@@ -1,10 +1,15 @@
 from fastapi import APIRouter, Depends, Header, Query, Request, Response, status
+from fastapi.security import HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import get_settings
 from app.database import get_db
 from app.errors import ApiError
 from app.models import PurchaseIntention
+from app.orchestrator import ChatOrchestrator
 from app.schemas import (
+    ChatRequest,
+    ChatResponse,
     IntentionRequest,
     IntentionResponse,
     LoginRequest,
@@ -14,10 +19,11 @@ from app.schemas import (
     Success,
     TokenResponse,
 )
-from app.security import Principal, get_principal
+from app.security import Principal, bearer, get_principal
 from app.services import authenticate, execute_purchase, get_catalog, register_intention
 
 router = APIRouter(prefix="/api/v1")
+orchestrator = ChatOrchestrator(get_settings())
 
 
 @router.post(
@@ -31,6 +37,27 @@ router = APIRouter(prefix="/api/v1")
 async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     token, expires_in = await authenticate(db, data.email, data.password)
     return {"data": {"access_token": token, "token_type": "bearer", "expires_in": expires_in}}
+
+
+@router.post(
+    "/chat",
+    response_model=Success[ChatResponse],
+    tags=["chat"],
+    summary="Enviar mensagem ao assistente",
+    description="Mantem o historico da conversa na sessao JWT atual.",
+    responses={
+        401: {"description": "Nao autenticado"},
+        503: {"description": "Assistente indisponivel"},
+    },
+)
+async def chat(
+    data: ChatRequest,
+    principal: Principal = Depends(get_principal),
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+):
+    access_token = credentials.credentials if credentials else ""
+    reply = await orchestrator.chat(principal, access_token, data.message)
+    return {"data": {"reply": reply}}
 
 
 @router.get(

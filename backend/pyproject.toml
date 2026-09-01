@@ -8,6 +8,8 @@ dependencies = [
   "alembic>=1.16.0",
   "email-validator>=2.2.0",
   "fastapi>=0.116.0",
+  "httpx>=0.28.1",
+  "mcp>=1.12.0,<2",
   "pwdlib[argon2]>=0.2.1",
   "pydantic-settings>=2.10.0",
   "pyjwt>=2.10.1",
@@ -18,7 +20,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-  "httpx>=0.28.1",
   "mypy>=1.17.0",
   "pytest>=8.4.0",
   "pytest-asyncio>=1.1.0",
