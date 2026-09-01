@@ -1,4 +1,11 @@
-# Chatbot MCP de Pagamentos
+# Chatbot MCP de Pagamentos Squad 7
+
+Desafio do Bootcamp | AWS AI FDE Agentic Payments, os integrantes do Squad 7 é composto por:
+
+Igor Cauan Alves Santos
+Alex Cordeiro
+Tamires Freitas
+Lucas Oliveira
 
 Aplicação local de pagamentos agênticos construída para o desafio **Chatbot com Tools
 MCP de Pagamentos**. O usuário faz login, conversa em linguagem natural com um agente
@@ -17,7 +24,7 @@ Frontend React → Backend FastAPI (auth + agente + MCP client)
 
 - **Frontend:** React + Vite, com login e chat via WebSocket.
 - **Backend:** FastAPI, JWT, SQLite/SQLAlchemy e orquestração do agente.
-- **Modelo:** Groq REST API usando `qwen/qwen3.6-27b`.
+- **Modelo:** Groq REST API usando `qwen/qwen3.6-27b` na nuvem.
 - **MCP:** servidor local que expõe as três ferramentas de negócio.
 - **Persistência:** SQLite para o ambiente local; intenções e compras são validadas no
   backend.
