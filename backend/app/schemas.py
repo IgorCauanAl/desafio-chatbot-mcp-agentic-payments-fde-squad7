@@ -21,12 +21,8 @@ class TokenResponse(BaseModel):
     expires_in: int
 
 
-class ChatRequest(BaseModel):
+class ChatMessage(BaseModel):
     message: str = Field(min_length=1, max_length=4_000)
-
-
-class ChatResponse(BaseModel):
-    reply: str
 
 
 class ProductResponse(BaseModel):

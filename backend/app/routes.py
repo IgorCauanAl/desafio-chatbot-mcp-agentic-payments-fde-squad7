@@ -1,5 +1,17 @@
-from fastapi import APIRouter, Depends, Header, Query, Request, Response, status
-from fastapi.security import HTTPAuthorizationCredentials
+import json
+
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    Query,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
+)
+from pydantic import ValidationError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.config import get_settings
@@ -8,8 +20,7 @@ from app.errors import ApiError
 from app.models import PurchaseIntention
 from app.orchestrator import ChatOrchestrator
 from app.schemas import (
-    ChatRequest,
-    ChatResponse,
+    ChatMessage,
     IntentionRequest,
     IntentionResponse,
     LoginRequest,
@@ -19,7 +30,7 @@ from app.schemas import (
     Success,
     TokenResponse,
 )
-from app.security import Principal, bearer, get_principal
+from app.security import Principal, get_principal, validate_token
 from app.services import authenticate, execute_purchase, get_catalog, register_intention
 
 router = APIRouter(prefix="/api/v1")
@@ -39,25 +50,38 @@ async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
     return {"data": {"access_token": token, "token_type": "bearer", "expires_in": expires_in}}
 
 
-@router.post(
-    "/chat",
-    response_model=Success[ChatResponse],
-    tags=["chat"],
-    summary="Enviar mensagem ao assistente",
-    description="Mantem o historico da conversa na sessao JWT atual.",
-    responses={
-        401: {"description": "Nao autenticado"},
-        503: {"description": "Assistente indisponivel"},
-    },
-)
-async def chat(
-    data: ChatRequest,
-    principal: Principal = Depends(get_principal),
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
-):
-    access_token = credentials.credentials if credentials else ""
-    reply = await orchestrator.chat(principal, access_token, data.message)
-    return {"data": {"reply": reply}}
+@router.websocket("/chat/ws")
+async def chat(websocket: WebSocket) -> None:
+    access_token = websocket.query_params.get("token")
+    if not access_token:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+    try:
+        principal = validate_token(access_token)
+    except ApiError:
+        await websocket.close(code=status.WS_1008_POLICY_VIOLATION)
+        return
+
+    await websocket.accept()
+    while True:
+        try:
+            payload = await websocket.receive_json()
+            data = ChatMessage.model_validate(payload)
+            async for chunk in orchestrator.stream_chat(principal, access_token, data.message):
+                await websocket.send_json({"type": "chunk", "content": chunk})
+            await websocket.send_json({"type": "done"})
+        except WebSocketDisconnect:
+            return
+        except (json.JSONDecodeError, ValidationError):
+            await websocket.send_json(
+                {
+                    "type": "error",
+                    "code": "DADOS_INVALIDOS",
+                    "message": "Dados de entrada inválidos",
+                }
+            )
+        except ApiError as exc:
+            await websocket.send_json({"type": "error", "code": exc.code, "message": exc.message})
 
 
 @router.get(

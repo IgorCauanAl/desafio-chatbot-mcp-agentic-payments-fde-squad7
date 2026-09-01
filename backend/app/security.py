@@ -37,15 +37,11 @@ def create_access_token(user_id: str) -> tuple[str, int]:
     return token, settings.access_token_minutes * 60
 
 
-async def get_principal(
-    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
-) -> Principal:
-    if credentials is None:
-        raise ApiError(401, "NAO_AUTENTICADO", "Token de acesso ausente")
+def validate_token(token: str) -> Principal:
     settings = get_settings()
     try:
         payload = jwt.decode(
-            credentials.credentials,
+            token,
             settings.jwt_secret,
             algorithms=[settings.jwt_algorithm],
             options={"require": ["sub", "sid", "exp"]},
@@ -53,3 +49,11 @@ async def get_principal(
     except InvalidTokenError as exc:
         raise ApiError(401, "TOKEN_INVALIDO", "Token de acesso inválido ou expirado") from exc
     return Principal(user_id=str(payload["sub"]), session_id=str(payload["sid"]))
+
+
+async def get_principal(
+    credentials: HTTPAuthorizationCredentials | None = Depends(bearer),
+) -> Principal:
+    if credentials is None:
+        raise ApiError(401, "NAO_AUTENTICADO", "Token de acesso ausente")
+    return validate_token(credentials.credentials)

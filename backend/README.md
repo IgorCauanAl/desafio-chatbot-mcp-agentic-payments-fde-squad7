@@ -31,7 +31,7 @@ o mecanismo canônico para ambientes persistentes.
 | Método | Endpoint | Uso |
 |---|---|---|
 | `POST` | `/api/v1/auth/tokens` | Login e emissão do JWT |
-| `POST` | `/api/v1/chat` | Conversa com o assistente de pagamentos |
+| `WS` | `/api/v1/chat/ws?token=<access_token>` | Conversa com o assistente de pagamentos |
 | `GET` | `/api/v1/products` | Catálogo paginado, filtro `category` |
 | `POST` | `/api/v1/purchase-intentions` | Registra intenção e calcula o total |
 | `GET` | `/api/v1/purchase-intentions/{id}` | Consulta uma intenção da sessão |
@@ -68,20 +68,35 @@ MCP_SERVER_MODULE=server_mcp.server
 MAX_TOOL_ITERATIONS=5
 ```
 
-O front-end deve autenticar o usuário e enviar cada mensagem com o mesmo Bearer token:
+O front-end deve autenticar o usuário e abrir uma conexão WebSocket com o token recebido:
 
-```bash
-curl -X POST http://localhost:8000/api/v1/chat \
-	-H "Authorization: Bearer <access_token>" \
-	-H "Content-Type: application/json" \
-	-d '{"message":"Liste os produtos disponiveis"}'
+```text
+ws://localhost:8000/api/v1/chat/ws?token=<access_token>
 ```
 
-A resposta segue o envelope da API:
+Cada frame é JSON. O cliente envia uma mensagem por vez:
 
 ```json
-{"data":{"reply":"..."},"meta":null}
+{"message":"Liste os produtos disponiveis"}
 ```
+
+O servidor transmite partes da resposta final conforme o Ollama as gera e encerra o turno:
+
+```json
+{"type":"chunk","content":"..."}
+{"type":"done"}
+```
+
+Um payload inválido ou uma falha do assistente retorna um evento de erro e mantém a conexão
+aberta para a próxima mensagem:
+
+```json
+{"type":"error","code":"DADOS_INVALIDOS","message":"Dados de entrada inválidos"}
+```
+
+Token ausente ou inválido encerra o handshake com código WebSocket `1008`. Como o token é
+enviado na query por requisito do protocolo, proxies e observabilidade devem redigir o
+parâmetro `token`; a aplicação não deve registrá-lo.
 
 O histórico completo fica somente em memória e é separado pelo `sid` do JWT. Um novo
 login cria uma nova sessão de conversa, e reiniciar o backend limpa todos os históricos.
