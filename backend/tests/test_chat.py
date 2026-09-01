@@ -75,6 +75,30 @@ def test_chat_websocket_rejects_invalid_input_without_closing(monkeypatch):
             assert websocket.receive_json() == {"type": "chunk", "content": "Resposta "}
 
 
+def test_purchase_message_handles_structured_content():
+    payload = {
+        "structured_content": {"status": "aprovado", "transaction_id": "tx_001"},
+        "content": [{"type": "text", "text": '{"status": "aprovado"}'}],
+    }
+
+    assert ChatOrchestrator._purchase_message(payload) == (
+        "Compra aprovada! O pagamento foi concluído com sucesso."
+    )
+
+
+def test_purchase_message_falls_back_to_backend_error_message():
+    payload = {
+        "error": {
+            "code": "LIMITE_EXCEDIDO",
+            "message": "A compra excede o limite disponível",
+        }
+    }
+
+    assert ChatOrchestrator._purchase_message(payload) == (
+        "Infelizmente, o valor desta compra ultrapassa seu limite disponível."
+    )
+
+
 @pytest.mark.parametrize("query", ["", "?token=invalido"])
 def test_chat_websocket_rejects_invalid_token(query):
     with TestClient(app) as client:

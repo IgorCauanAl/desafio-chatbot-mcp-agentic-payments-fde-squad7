@@ -49,7 +49,9 @@ async def realizar_compra(intencao_id: str, metodo_pagamento: str, confirmado: b
         }
         return json.dumps(resultado, ensure_ascii=False)
 
-    resultado = await backend_client.realizar_compra(intencao_id, metodo_pagamento)
+    resultado = await backend_client.realizar_compra(
+        intencao_id, metodo_pagamento, confirmado=confirmado
+    )
     return json.dumps(resultado, ensure_ascii=False)
 
 

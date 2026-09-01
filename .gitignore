@@ -245,3 +245,6 @@ Thumbs.db
 *.temp
 
 .idea
+
+.env.example
+

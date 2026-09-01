@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 const CHAT_WS_PATH = '/api/v1/chat/ws';
+const RECONNECT_BASE_DELAY = 1000;
+const RECONNECT_MAX_DELAY = 10000;
 
 export function useChat() {
   const [messages, setMessages] = useState([]);
@@ -8,8 +10,14 @@ export function useChat() {
   const [error, setError] = useState('');
   const socketRef = useRef(null);
   const pendingAssistantRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
+  const reconnectAttemptRef = useRef(0);
+  const isUnmountedRef = useRef(false);
+  const connectSocketRef = useRef(null);
 
   const connectSocket = useCallback(() => {
+    if (isUnmountedRef.current) return null;
+
     const token = sessionStorage.getItem('auth_token');
     if (!token) {
       setError('Sessão expirada. Faça login novamente.');
@@ -20,18 +28,34 @@ export function useChat() {
       return socketRef.current;
     }
 
-    const backendBase = import.meta.env.VITE_WS_URL || import.meta.env.VITE_API_URL || window.location.origin;
+    const backendBase =
+      import.meta.env.VITE_WS_URL ||
+      import.meta.env.VITE_API_URL ||
+      (window.location.hostname === 'localhost' ? 'http://localhost:8000' : window.location.origin);
     const wsBaseUrl = backendBase.replace(/^http/, 'ws').replace(/\/$/, '');
     const wsUrl = `${wsBaseUrl}${CHAT_WS_PATH}?token=${encodeURIComponent(token)}`;
     const socket = new WebSocket(wsUrl);
     socketRef.current = socket;
 
     socket.onopen = () => {
+      reconnectAttemptRef.current = 0;
       setError('');
     };
 
     socket.onmessage = (event) => {
-      const payload = JSON.parse(event.data);
+      let payload;
+
+      try {
+        payload = JSON.parse(event.data);
+      } catch (error) {
+        console.error('Mensagem inválida recebida pelo WebSocket do chat.', error);
+        setError('Resposta inválida do chat. Tente novamente.');
+        return;
+      }
+
+      if (!payload || typeof payload !== 'object') {
+        return;
+      }
 
       if (payload.type === 'chunk') {
         const text = payload.content || '';
@@ -78,29 +102,45 @@ export function useChat() {
     };
 
     socket.onerror = () => {
-      setError('Não foi possível conectar ao chat. Tente novamente.');
       setLoading(false);
     };
 
     socket.onclose = () => {
+      if (socketRef.current !== socket || isUnmountedRef.current) return;
       socketRef.current = null;
-      if (pendingAssistantRef.current) {
-        setLoading(false);
-        setError('Conexão encerrada. Reabrindo a sessão...');
-      } else {
-        setError('Conexão do chat indisponível. Tente novamente.');
-      }
+      setLoading(false);
+      const delay = Math.min(
+        RECONNECT_BASE_DELAY * 2 ** reconnectAttemptRef.current,
+        RECONNECT_MAX_DELAY,
+      );
+      reconnectAttemptRef.current += 1;
+      setError('Conexão do chat interrompida. Reconectando...');
+      reconnectTimerRef.current = window.setTimeout(() => {
+        reconnectTimerRef.current = null;
+        connectSocketRef.current?.();
+      }, delay);
     };
 
     return socket;
   }, []);
 
   useEffect(() => {
-    const socket = connectSocket();
+    isUnmountedRef.current = false;
+    connectSocketRef.current = connectSocket;
+    const initialConnectionTimer = window.setTimeout(() => {
+      connectSocket();
+    }, 0);
 
     return () => {
-      if (socket) {
-        socket.close();
+      isUnmountedRef.current = true;
+      connectSocketRef.current = null;
+      window.clearTimeout(initialConnectionTimer);
+      if (reconnectTimerRef.current) {
+        window.clearTimeout(reconnectTimerRef.current);
+        reconnectTimerRef.current = null;
+      }
+      if (socketRef.current) {
+        socketRef.current.close();
       }
       socketRef.current = null;
     };
@@ -112,7 +152,7 @@ export function useChat() {
 
     const socket = socketRef.current || connectSocket();
     if (!socket || socket.readyState !== WebSocket.OPEN) {
-      setError('Conexão do chat indisponível. Tente novamente.');
+      setError('Conectando ao chat. Tente novamente em instantes.');
       return;
     }
 

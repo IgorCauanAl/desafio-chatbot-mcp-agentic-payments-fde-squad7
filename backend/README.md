@@ -1,7 +1,11 @@
 # Backend — Pagamentos Agênticos
 
-API FastAPI responsável por autenticação JWT, persistência e regras de segurança de
-catálogo, intenções e compras. Todos os endpoints de negócio exigem `Bearer token`.
+Desafio da Bootcamp | AWS AI FDE Agentic Payments do Squad7, os integrantes:
+
+Igor Cauan Alves Santos
+Alex Cordeiro
+Tamires Freitas
+Lucas Oliveira
 
 ## Executar
 
@@ -46,23 +50,17 @@ do cliente. Erros de negócio usam os códigos do desafio: `INTENCAO_INVALIDA`,
 
 ## Assistente de pagamentos
 
-O orquestrador usa o Ollama local e inicia o servidor MCP por `stdio` a cada turno.
+O orquestrador usa a API da Groq via REST, com o modelo definido em `GROQ_MODEL`, e inicia o servidor MCP por `stdio` a cada turno.
 O processo MCP recebe o Bearer token da chamada de chat, preservando o usuário e a
 sessão JWT exigidos nas operações de pagamento.
 
-Antes de iniciar o backend, deixe o Ollama ativo e obtenha o modelo:
-
-```bash
-ollama pull qwen3:1.7b
-ollama serve
-```
-
-As variáveis opcionais abaixo possuem estes valores locais padrão:
+As variáveis relevantes possuem estes valores locais padrão:
 
 ```dotenv
 BACKEND_BASE_URL=http://localhost:8000
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=qwen3:1.7b
+LLM_PROVIDER=groq
+GROQ_API_BASE_URL=https://api.groq.com/openai/v1
+GROQ_MODEL=llama-3.3-70b-versatile
 MCP_SERVER_CWD=mcp-server/src
 MCP_SERVER_MODULE=server_mcp.server
 MAX_TOOL_ITERATIONS=5
@@ -80,7 +78,7 @@ Cada frame é JSON. O cliente envia uma mensagem por vez:
 {"message":"Liste os produtos disponiveis"}
 ```
 
-O servidor transmite partes da resposta final conforme o Ollama as gera e encerra o turno:
+O servidor transmite partes da resposta final conforme a Groq as gera e encerra o turno:
 
 ```json
 {"type":"chunk","content":"..."}

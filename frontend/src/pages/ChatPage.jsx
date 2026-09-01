@@ -13,7 +13,7 @@ export default function ChatPage() {
         <h1 className="chat-header__title">Assistente de Compras</h1>
       </header>
       {error && <div className="chat-page__error">{error}</div>}
-      <MessageList messages={messages} />
+      <MessageList messages={messages} onReply={send} loading={loading} />
       <ChatInput onSend={send} disabled={loading} />
     </div>
   );

@@ -31,3 +31,40 @@
   color: var(--text-primary);
   border-bottom-right-radius: 4px;
 }
+
+.bubble__quick-replies {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.bubble__quick-reply {
+  border: none;
+  border-radius: 999px;
+  background: var(--phosphor-dim);
+  color: var(--text-primary);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 10px 16px;
+  cursor: pointer;
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.bubble__quick-reply:hover {
+  transform: translateY(-1px);
+  filter: brightness(1.04);
+}
+
+.bubble__quick-reply:focus-visible {
+  outline: 2px solid var(--phosphor);
+  outline-offset: 2px;
+}
+
+.bubble__quick-reply:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
