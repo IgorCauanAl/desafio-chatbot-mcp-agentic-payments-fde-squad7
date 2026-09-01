@@ -205,36 +205,35 @@ npm run build
 
 ## Execução
 
-As imagens abaixo registram a execução local da aplicação, desde a autenticação até os
-fluxos de sucesso e de validação das regras de pagamento.
+As imagens abaixo registram a execução local da aplicação, com base nos critérios do desafio
 
-### Login
+### Pagamento aprovado para cartão
 
-![Tela de login](docs/images/01-login.png)
+<img width="1920" height="936" alt="cartao1" src="https://github.com/user-attachments/assets/586aedbb-168d-44f9-9273-f5fd67accaaf" />
 
-### Consulta do catálogo
+<img width="1920" height="940" alt="cartao" src="https://github.com/user-attachments/assets/f73df234-b99f-422e-975a-44702b478aa9" />
 
-![Catálogo de produtos](docs/images/02-catalogo.png)
 
-### Registro da intenção de compra
 
-![Intenção de compra registrada](docs/images/03-intencao.png)
+### Pagamento aprovado para Pix 
 
-### Compra aprovada com cartão
+<img width="637" height="784" alt="Pix" src="https://github.com/user-attachments/assets/ac5e38d8-7501-49f4-b76d-3137c8264ec3" />
 
-![Compra aprovada com cartão](docs/images/04-pagamento-cartao.png)
+<img width="1920" height="942" alt="Pix2" src="https://github.com/user-attachments/assets/a065009d-eef3-42f5-b016-a154ea388faa" />
 
-### Compra aprovada com Pix
 
-![Compra aprovada com Pix](docs/images/05-pagamento-pix.png)
+### Limite Excedido
 
-### Compra bloqueada por limite excedido
+<img width="634" height="933" alt="limite excedido" src="https://github.com/user-attachments/assets/b240b6fc-eb9e-4fa8-a727-0b5f61d3fa60" />
 
-![Limite excedido](docs/images/06-limite-excedido.png)
+<img width="632" height="930" alt="Limite excedido 2" src="https://github.com/user-attachments/assets/f1fbd854-a8f2-4f00-bc91-b9b62b7732aa" />
 
-### Recusa de intenção inválida
 
-![Intenção inválida](docs/images/07-intencao-invalida.png)
+### Intenção da compra inválida 
+
+
+<img width="1919" height="936" alt="image(1)" src="https://github.com/user-attachments/assets/f3cda29b-a116-49aa-bf1a-085a0f3adad9" />
+
 
 ## Estrutura do projeto
 
