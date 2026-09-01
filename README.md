@@ -223,7 +223,7 @@ As imagens abaixo registram a execução local da aplicação, com base nos crit
 ## Estrutura do projeto
 
 ```text
-backend/       API, autenticação, banco, agente e testes
+backend/       API, autenticação, banco, agente , logs e o mcp_client testes
 frontend/      Interface React do login e chat
 mcp-server/    Servidor MCP e integrações com a API de pagamentos
 ```
