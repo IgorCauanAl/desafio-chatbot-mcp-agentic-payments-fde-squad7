@@ -1,83 +1,109 @@
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
-const USE_MOCK = true;
-
-const catalogo = [
-  { id: 'prod_001', nome: 'Teclado Mecânico', preco: 189.9, moeda: 'BRL', estoque: 8 },
-  { id: 'prod_002', nome: 'Mouse Gamer', preco: 99.9, moeda: 'BRL', estoque: 15 },
-  { id: 'prod_003', nome: 'Fone Bluetooth', preco: 249.9, moeda: 'BRL', estoque: 12 },
-];
+import { listProducts } from './productService';
+import { createIntention, createPurchase } from './purchaseService';
 
 export async function sendMessage(text, history) {
-  if (USE_MOCK) return mockSendMessage(text);
+  const lower = text.toLowerCase();
 
-  const response = await fetch(`${API_URL}/api/chat`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${sessionStorage.getItem('auth_token')}`,
-    },
-    body: JSON.stringify({ message: text, history }),
-  });
+  if (lower.includes('vend') || lower.includes('catálogo') || lower.includes('catalogo')) {
+    return handleListCatalog();
+  }
 
-  if (!response.ok) throw new Error('Erro ao falar com o agente.');
-  return response.json(); // { reply, toolCall? }
+  const pendingProduct = findPendingProduct(history);
+  if (pendingProduct) {
+    const quantidade = extractQuantity(lower);
+    if (!quantidade) {
+      return { reply: 'Não entendi a quantidade. Quantas unidades você quer?' };
+    }
+    return handleIntention(pendingProduct, quantidade);
+  }
+
+  const lastIntention = findLastIntention(history);
+  if (lower.includes('pix') || lower.includes('cartão') || lower.includes('cartao')) {
+    const metodo = lower.includes('pix') ? 'pix' : 'cartao';
+    return handlePurchase(lastIntention?.intention_id, metodo);
+  }
+
+  const produtoId = extractProductId(lower);
+  if (produtoId) {
+    return {
+      reply: `Quantas unidades de ${produtoId} você quer?`,
+      toolCall: { name: 'aguardando_quantidade', args: {}, result: { produto_id: produtoId } },
+    };
+  }
+
+  return { reply: 'Posso te mostrar o catálogo ou registrar uma compra. O que você precisa?' };
 }
 
-function mockSendMessage(text) {
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      const lower = text.toLowerCase();
+async function handleListCatalog() {
+  try {
+    const produtos = await listProducts();
+    return {
+      reply: 'Aqui está o que temos disponível:',
+      toolCall: { name: 'listar_catalogo', args: {}, result: { produtos } },
+    };
+  } catch (err) {
+    return { reply: `Não consegui buscar o catálogo: ${err.message}` };
+  }
+}
 
-      if (lower.includes('vend') || lower.includes('catálogo') || lower.includes('catalogo')) {
-        resolve({
-          reply: 'Aqui está o que temos disponível:',
-          toolCall: { name: 'listar_catalogo', args: {}, result: { produtos: catalogo } },
-        });
-        return;
-      }
+async function handleIntention(productId, quantity) {
+  try {
+    const result = await createIntention(productId, quantity);
+    return {
+      reply: 'Registrei sua intenção de compra. Quer pagar no pix ou cartão?',
+      toolCall: { name: 'registrar_intencao', args: { produto_id: productId, quantidade: quantity }, result },
+    };
+  } catch (err) {
+    return { reply: `Não consegui registrar a intenção: ${err.message}` };
+  }
+}
 
-      if (lower.includes('item 3') || lower.includes('fone')) {
-        resolve({
-          reply: 'Registrei sua intenção de compra. Quer pagar no pix ou cartão?',
-          toolCall: {
-            name: 'registrar_intencao',
-            args: { produto_id: 'prod_003', quantidade: 1 },
-            result: {
-              intencao_id: 'int_a1b2c3',
-              produto_id: 'prod_003',
-              quantidade: 1,
-              valor_total: 249.9,
-              moeda: 'BRL',
-              status: 'pendente',
-              expira_em: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
-            },
-          },
-        });
-        return;
-      }
+async function handlePurchase(intentionId, metodo) {
+  if (!intentionId) {
+    return { reply: 'Não encontrei uma intenção de compra ativa. Me diga qual produto você quer primeiro.' };
+  }
 
-      if (lower.includes('pix') || lower.includes('cartão') || lower.includes('cartao')) {
-        const metodo = lower.includes('pix') ? 'pix' : 'cartao';
-        resolve({
-          reply: 'Compra aprovada! 🎉',
-          toolCall: {
-            name: 'realizar_compra',
-            args: { intencao_id: 'int_a1b2c3', metodo_pagamento: metodo },
-            result: {
-              status: 'aprovado',
-              transacao_id: 'tx_9f8e7d',
-              intencao_id: 'int_a1b2c3',
-              valor: 249.9,
-              metodo_pagamento: metodo,
-              limite_restante: 250.1,
-              data: new Date().toISOString(),
-            },
-          },
-        });
-        return;
-      }
+  try {
+    const result = await createPurchase(intentionId, metodo);
+    return {
+      reply: 'Compra aprovada! 🎉',
+      toolCall: { name: 'realizar_compra', args: { intencao_id: intentionId, metodo_pagamento: metodo }, result },
+    };
+  } catch (err) {
+    return {
+      reply: `Não foi possível concluir a compra: ${err.message}`,
+      toolCall: { name: 'realizar_compra', args: { intencao_id: intentionId, metodo_pagamento: metodo }, result: { status: 'recusado', mensagem: err.message } },
+    };
+  }
+}
 
-      resolve({ reply: 'Posso te mostrar o catálogo ou registrar uma compra. O que você precisa?' });
-    }, 700);
-  });
+function findPendingProduct(history) {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const call = history[i]?.toolCall;
+    if (call?.name === 'registrar_intencao') return null;
+    if (call?.name === 'aguardando_quantidade') return call.result.produto_id;
+  }
+  return null;
+}
+
+function findLastIntention(history) {
+  for (let i = history.length - 1; i >= 0; i--) {
+    const call = history[i]?.toolCall;
+    if (call?.name === 'registrar_intencao') return call.result;
+  }
+  return null;
+}
+
+function extractQuantity(text) {
+  const match = text.match(/\d+/);
+  return match ? parseInt(match[0], 10) : null;
+}
+
+function extractProductId(text) {
+  const match = text.match(/prod_\d+/);
+  if (match) return match[0];
+  if (text.includes('item 1')) return 'prod_001';
+  if (text.includes('item 2')) return 'prod_002';
+  if (text.includes('item 3')) return 'prod_003';
+  return null;
 }
